@@ -3,8 +3,9 @@
   const sessionId = params.get('ext');
   if (!sessionId) return;
 
-  const result = await chrome.storage.session.get(sessionId);
-  const payload = result[sessionId];
+  const relayKey = `ext-relay-${sessionId}`;
+  const result = await chrome.storage.local.get(relayKey);
+  const payload = result[relayKey];
   if (!payload) return;
 
   // Write to localStorage immediately so the React restore-on-mount effect
@@ -16,8 +17,8 @@
   cleanUrl.searchParams.delete('ext');
   history.replaceState({}, '', cleanUrl.toString());
 
-  // Clean up session entry
-  await chrome.storage.session.remove(sessionId);
+  // Clean up relay entry
+  await chrome.storage.local.remove(relayKey);
 
   // Also fire a live event after React has had time to mount its listener.
   // The restore effect already handles the fallback, so this is best-effort.

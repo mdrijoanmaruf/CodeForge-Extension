@@ -1,12 +1,32 @@
 // ── Scraper ────────────────────────────────────────────────────────────────
 
+// Codeforces wraps pre content in <div class="test-example-line ..."> elements.
+// Extract each line's textContent and join with newlines for correct stdin format.
+function extractPreText(pre) {
+  if (!pre) return '';
+  const lines = pre.querySelectorAll('.test-example-line');
+  if (lines.length > 0) {
+    return [...lines].map(l => l.textContent ?? '').join('\n').trim();
+  }
+  return pre.innerText.trim();
+}
+
 function scrapeProblem() {
   const header    = document.querySelector('.problem-statement .header');
   const title     = header?.querySelector('.title')?.innerText?.trim();
   const timeLimit = header?.querySelector('.time-limit')?.childNodes[1]?.textContent?.trim();
   const memLimit  = header?.querySelector('.memory-limit')?.childNodes[1]?.textContent?.trim();
 
-  const statement = document.querySelector('.problem-statement')?.outerHTML ?? '';
+  // Clone to avoid mutating the live DOM; strip the injected solve button so it
+  // doesn't appear when the problem statement is rendered in the compiler panel.
+  const statementEl = document.querySelector('.problem-statement');
+  let statement = '';
+  if (statementEl) {
+    const clone = statementEl.cloneNode(true);
+    const injectedBtn = clone.querySelector('#rijoan-solve-btn');
+    if (injectedBtn) injectedBtn.remove();
+    statement = clone.outerHTML;
+  }
 
   const inputBlocks  = document.querySelectorAll('.sample-tests .input pre');
   const outputBlocks = document.querySelectorAll('.sample-tests .output pre');
@@ -14,8 +34,8 @@ function scrapeProblem() {
   const testCases = [...inputBlocks].map((inp, i) => ({
     id: i + 1,
     label: `Sample ${i + 1}`,
-    input: inp.innerText.trim(),
-    expectedOutput: outputBlocks[i]?.innerText?.trim() ?? '',
+    input: extractPreText(inp),
+    expectedOutput: extractPreText(outputBlocks[i]),
   }));
 
   const tags   = [...document.querySelectorAll('.tag-box')]
@@ -82,8 +102,8 @@ function injectButton() {
 
     const payload = scrapeProblem();
 
-    // Save to session storage for relay
-    await chrome.storage.session.set({ [payload.sessionId]: payload });
+    // Save to local storage for relay (session storage is blocked on some CF pages)
+    await chrome.storage.local.set({ [`ext-relay-${payload.sessionId}`]: payload });
 
     // Save to recent history
     const RECENT_KEY = 'cf-recent-problems';
@@ -98,11 +118,9 @@ function injectButton() {
     const updated = [entry, ...existing.filter(r => r.problemId !== payload.problemId)].slice(0, 5);
     await chrome.storage.local.set({ [RECENT_KEY]: updated });
 
-    // Open compiler tab
-    chrome.runtime.sendMessage({
-      action: 'openTab',
-      url: `http://localhost:3000/?ext=${payload.sessionId}`,
-    });
+    // Open compiler tab directly — window.open works from a user-gesture click
+    // and avoids the MV3 service-worker-sleeping race that drops sendMessage calls.
+    window.open(`http://localhost:3000/?ext=${payload.sessionId}`, '_blank');
 
     setTimeout(() => {
       btn.innerText = '⚡ Solve on Rijoan Compiler';
