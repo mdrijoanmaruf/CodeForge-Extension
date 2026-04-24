@@ -3,21 +3,24 @@
   const sessionId = params.get('ext');
   if (!sessionId) return;
 
-  // Wait for React app to mount
-  await new Promise(r => setTimeout(r, 900));
-
   const result = await chrome.storage.session.get(sessionId);
   const payload = result[sessionId];
   if (!payload) return;
 
-  // Fire event the compiler React app listens to
-  window.dispatchEvent(new CustomEvent('ext:problem-loaded', { detail: payload }));
-
-  // Clean up session entry
-  await chrome.storage.session.remove(sessionId);
+  // Write to localStorage immediately so the React restore-on-mount effect
+  // can pick it up even if the custom event fires before the listener is registered.
+  try { localStorage.setItem('cf-active-problem', JSON.stringify(payload)); } catch { /* ignore */ }
 
   // Remove ?ext= from URL bar without reload
   const cleanUrl = new URL(window.location.href);
   cleanUrl.searchParams.delete('ext');
   history.replaceState({}, '', cleanUrl.toString());
+
+  // Clean up session entry
+  await chrome.storage.session.remove(sessionId);
+
+  // Also fire a live event after React has had time to mount its listener.
+  // The restore effect already handles the fallback, so this is best-effort.
+  await new Promise(r => setTimeout(r, 1200));
+  window.dispatchEvent(new CustomEvent('ext:problem-loaded', { detail: payload }));
 })();
