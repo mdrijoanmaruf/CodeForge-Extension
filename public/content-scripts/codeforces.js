@@ -72,6 +72,91 @@ function scrapeProblem() {
   };
 }
 
+// ── Submit auto-fill ────────────────────────────────────────────────────────
+
+const CF_LANG_MAP = {
+  cpp:        ['g++23', 'g++20', 'g++17', 'g++14', 'clang++'],
+  c:          ['g17', 'gcc c', ' c (gcc)'],
+  python:     ['python 3.12', 'python 3', 'pypy 3'],
+  java:       ['java 21', 'java 17', 'java 11', 'java 8', 'java'],
+  csharp:     ['c# mono', 'mono', 'c#'],
+  go:         ['go 1.', 'golang'],
+  rust:       ['rust'],
+  ruby:       ['ruby'],
+  php:        ['php'],
+  javascript: ['javascript v8', 'node.js', 'node'],
+};
+
+function waitForEl(selector, timeout = 6000) {
+  return new Promise(resolve => {
+    const el = document.querySelector(selector);
+    if (el) { resolve(el); return; }
+    const obs = new MutationObserver(() => {
+      const found = document.querySelector(selector);
+      if (found) { obs.disconnect(); resolve(found); }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => { obs.disconnect(); resolve(null); }, timeout);
+  });
+}
+
+function pickLangOption(select, languageId) {
+  const priorities = CF_LANG_MAP[languageId] ?? [];
+  const options = [...select.options];
+  for (const kw of priorities) {
+    const match = options.find(o => o.text.toLowerCase().includes(kw.toLowerCase()));
+    if (match) return match.value;
+  }
+  return null;
+}
+
+async function tryAutoFillSubmit() {
+  const result = await chrome.storage.local.get('cf-pending-submit');
+  const pending = result['cf-pending-submit'];
+  if (!pending) return;
+
+  // Stale after 30 seconds
+  if (Date.now() - pending.timestamp > 30000) {
+    await chrome.storage.local.remove('cf-pending-submit');
+    return;
+  }
+
+  // Match URL (strip hash/query for comparison)
+  const norm = u => u.split('#')[0].split('?')[0].replace(/\/$/, '');
+  if (norm(location.href) !== norm(pending.problemUrl)) return;
+
+  await chrome.storage.local.remove('cf-pending-submit');
+
+  // Wait for the language select (submit form must be present)
+  const langSelect = await waitForEl('select[name="programTypeId"]');
+  if (!langSelect) return;
+
+  // Set language
+  const val = pickLangOption(langSelect, pending.languageId);
+  if (val) {
+    langSelect.value = val;
+    langSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // Brief pause for CF to re-init the editor after language change
+  await new Promise(r => setTimeout(r, 400));
+
+  // Fill CodeMirror editor
+  const cmEl = document.querySelector('form[action*="submit"] .CodeMirror')
+            ?? document.querySelector('.submit-form .CodeMirror')
+            ?? document.querySelector('.CodeMirror');
+  if (cmEl?.CodeMirror) {
+    cmEl.CodeMirror.setValue(pending.code);
+  } else {
+    // Fallback: bare textarea
+    const ta = document.querySelector('textarea[name="source"]');
+    if (ta) { ta.value = pending.code; ta.dispatchEvent(new Event('input', { bubbles: true })); }
+  }
+
+  // Scroll the form into view
+  (langSelect.closest('form') ?? langSelect).scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 // ── Button injection ────────────────────────────────────────────────────────
 
 function injectButton() {
@@ -154,6 +239,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 // ── Init ───────────────────────────────────────────────────────────────────
 
 injectButton();
+tryAutoFillSubmit();
 
 // Re-inject if CF uses client-side navigation (rare but possible)
 const observer = new MutationObserver(() => {

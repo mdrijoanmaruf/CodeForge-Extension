@@ -1,3 +1,15 @@
+// Relay submit requests from the React compiler app to chrome.storage.local
+// so the CF content script can auto-fill the submit form when the tab opens.
+window.addEventListener('message', async (event) => {
+  if (event.source !== window || event.data?.type !== 'cf-pending-submit') return;
+  const { code, languageId, problemUrl } = event.data;
+  try {
+    await chrome.storage.local.set({
+      'cf-pending-submit': { code, languageId, problemUrl, timestamp: Date.now() },
+    });
+  } catch { /* ignore */ }
+});
+
 (async () => {
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get('ext');
