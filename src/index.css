@@ -11,3 +11,83 @@ body {
 #root {
   width: 400px;
 }
+
+/* ── Deep-blue popup shell ─────────────────────────────────── */
+.popup-root {
+  background: linear-gradient(135deg, #020c1b 0%, #051528 50%, #071e3d 100%);
+}
+
+.popup-header {
+  background: rgba(10, 30, 70, 0.6);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.popup-logo-icon {
+  background: rgba(37, 99, 235, 0.25);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.popup-subtitle {
+  color: rgba(147, 197, 253, 0.85);
+}
+
+.popup-ext-link {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+.popup-ext-link:hover {
+  background: rgba(37, 99, 235, 0.3);
+}
+
+.popup-problem-card {
+  background: rgba(10, 40, 90, 0.55);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.popup-stat-card {
+  background: rgba(5, 20, 55, 0.7);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.popup-muted {
+  color: rgba(147, 197, 253, 0.75);
+}
+
+.popup-solve-btn {
+  background: linear-gradient(to right, #1d4ed8, #1e40af);
+  border-color: rgba(96, 165, 250, 0.35);
+  box-shadow: 0 4px 20px rgba(29, 78, 216, 0.4);
+  cursor: pointer;
+}
+.popup-solve-btn:hover:not(:disabled) {
+  background: linear-gradient(to right, #1e40af, #1e3a8a);
+}
+
+.popup-solve-btn-off {
+  background: rgba(15, 30, 70, 0.5);
+  border-color: rgba(59, 130, 246, 0.15);
+  color: rgba(147, 197, 253, 0.5);
+  cursor: not-allowed;
+}
+
+.popup-recent-card {
+  background: rgba(8, 25, 60, 0.6);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.popup-recent-label {
+  color: rgba(147, 197, 253, 0.85);
+}
+
+.popup-recent-btn:hover {
+  background: rgba(29, 78, 216, 0.2);
+}
+
+.popup-recent-time {
+  color: rgba(147, 197, 253, 0.6);
+}
+
+.popup-footer {
+  border-color: rgba(59, 130, 246, 0.15);
+  color: rgba(147, 197, 253, 0.7);
+}

@@ -1,4 +1,3 @@
-// Generates minimal valid PNG icons for the Chrome extension
 const zlib = require('zlib');
 const fs = require('fs');
 const path = require('path');
@@ -27,16 +26,14 @@ function createPNG(size, r, g, b) {
 
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0); ihdr.writeUInt32BE(size, 4);
-  ihdr.writeUInt8(8, 8); ihdr.writeUInt8(2, 9); // 8-bit RGB
+  ihdr.writeUInt8(8, 8); ihdr.writeUInt8(2, 9);
 
-  // Raw scanlines: 1 filter byte + RGB pixels per row
   const raw = Buffer.alloc(size * (1 + size * 3));
   for (let y = 0; y < size; y++) {
     const row = y * (1 + size * 3);
-    raw[row] = 0; // filter None
+    raw[row] = 0;
     for (let x = 0; x < size; x++) {
       const p = row + 1 + x * 3;
-      // Draw a rounded look: slightly darker border
       const border = x === 0 || x === size - 1 || y === 0 || y === size - 1;
       raw[p]     = border ? Math.max(0, r - 30) : r;
       raw[p + 1] = border ? Math.max(0, g - 30) : g;
@@ -44,16 +41,13 @@ function createPNG(size, r, g, b) {
     }
   }
 
-  // Draw lightning bolt "⚡" as simple pixel art in the center
   const centerX = Math.floor(size / 2);
   const centerY = Math.floor(size / 2);
   const scale = Math.max(1, Math.floor(size / 16));
 
-  // Simple bolt shape: top-right diagonal, then bottom-left diagonal
   for (let dy = -4; dy <= 4; dy++) {
     for (let dx = -3; dx <= 3; dx++) {
       const boltPixels = [
-        // Top part of bolt (goes right then down-left)
         [-3,-4],[-2,-4],[-1,-4],[0,-4],
         [0,-3],
         [0,-2],[-1,-2],[-2,-2],
@@ -70,7 +64,7 @@ function createPNG(size, r, g, b) {
             for (let sx = 0; sx < scale; sx++) {
               const row2 = (px_y + sy) * (1 + size * 3);
               const p2 = row2 + 1 + (px_x + sx) * 3;
-              raw[p2] = 255; raw[p2 + 1] = 220; raw[p2 + 2] = 50; // yellow bolt
+              raw[p2] = 255; raw[p2 + 1] = 220; raw[p2 + 2] = 50;
             }
           }
         }
@@ -84,7 +78,6 @@ function createPNG(size, r, g, b) {
 const outDir = path.join(__dirname, 'public', 'icons');
 fs.mkdirSync(outDir, { recursive: true });
 
-// Blue #2563eb = rgb(37, 99, 235)
 const R = 37, G = 99, B = 235;
 
 [16, 48, 128].forEach(size => {

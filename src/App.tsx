@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
+import {
+  FiZap,
+  FiExternalLink,
+  FiLoader,
+  FiCheck,
+  FiHash,
+  FiBarChart2,
+  FiList,
+  FiClock,
+  FiLink,
+} from 'react-icons/fi'
 import './index.css'
 import type { RecentProblem } from './types'
 
-const COMPILER_URL = 'http://localhost:3000'
-
-// ── helpers ──────────────────────────────────────────────────────────────────
+const COMPILER_URL = 'https://compiler.rijoan.com'
 
 function isCFProblemUrl(url: string): boolean {
   return /https?:\/\/codeforces\.com\/(problemset\/problem|contest\/\d+\/problem|gym\/\d+\/problem)/.test(url)
@@ -30,20 +39,18 @@ function timeAgo(ts: number): string {
   return `${Math.floor(h / 24)}d ago`
 }
 
-// ── Badge ─────────────────────────────────────────────────────────────────────
-
 function StatusBadge({ detected }: { detected: boolean }) {
   return (
-    <div className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${
-      detected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+    <div className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border ${
+      detected
+        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
+        : 'bg-white/10 text-blue-100 border-white/15'
     }`}>
-      <span className={`w-2 h-2 rounded-full ${detected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+      <span className={`w-2 h-2 rounded-full ${detected ? 'bg-emerald-400 animate-pulse' : 'bg-blue-200/70'}`} />
       {detected ? 'CF problem detected' : 'Not a CF problem page'}
     </div>
   )
 }
-
-// ── Main App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [tab, setTab] = useState<chrome.tabs.Tab | null>(null)
@@ -59,7 +66,6 @@ export default function App() {
       setTab(t)
       if (t?.url && isCFProblemUrl(t.url)) {
         setDetected(true)
-        // Ask content script for scraped data
         try {
           const response = await chrome.tabs.sendMessage(t.id!, { action: 'getProblemInfo' })
           if (response?.problemName) {
@@ -70,9 +76,7 @@ export default function App() {
               samples: response.testCases?.length ?? 0,
             })
           }
-        } catch {
-          // Content script not yet injected or no response — still show detected
-        }
+        } catch {}
       }
       const r = await loadRecent()
       setRecent(r.slice(0, 5))
@@ -87,7 +91,6 @@ export default function App() {
       setOpened(true)
       setTimeout(() => setOpened(false), 2500)
     } catch {
-      // Fallback: open compiler directly
       chrome.tabs.create({ url: COMPILER_URL })
     } finally {
       setLoading(false)
@@ -95,71 +98,93 @@ export default function App() {
   }
 
   return (
-    <div className="w-[400px] bg-white font-sans select-none">
-      {/* Header */}
-      <div className="bg-blue-600 text-white px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-bold">⚡ Rijoan Compiler</span>
+    <div className="popup-root w-full overflow-hidden font-sans text-white select-none">
+      {/* header */}
+      <div className="popup-header px-4 py-4 border-b backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="popup-logo-icon w-7 h-7 rounded-lg inline-flex items-center justify-center shrink-0 border">
+              <FiZap className="w-4 h-4 text-cyan-300" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold tracking-wide truncate text-white">Rijoan Compiler</p>
+              <p className="popup-subtitle text-[11px]">Codeforces Bridge</p>
+            </div>
+          </div>
+          <a
+            href={COMPILER_URL}
+            onClick={(e) => { e.preventDefault(); chrome.tabs.create({ url: COMPILER_URL }) }}
+            className="popup-ext-link p-1.5 rounded-md border transition-colors"
+            title="Open compiler"
+          >
+            <FiExternalLink className="w-3.5 h-3.5 text-blue-300" />
+          </a>
         </div>
-        <p className="text-blue-200 text-xs mt-0.5">Codeforces Bridge</p>
       </div>
 
       <div className="p-3 space-y-3">
-        {/* Detection status */}
         <StatusBadge detected={detected} />
 
-        {/* Problem info (only when on CF page) */}
         {detected && (
-          <div className="border border-gray-200 rounded-lg p-3 text-sm space-y-1.5 bg-gray-50">
+          <div className="popup-problem-card rounded-xl p-3 text-sm space-y-2 border backdrop-blur-md">
             {problem ? (
               <>
-                <div className="font-semibold text-gray-800 truncate">{problem.name}</div>
-                <div className="flex gap-4 text-xs text-gray-500">
-                  <span>Contest <span className="font-medium text-gray-700">{problem.contest}</span></span>
-                  <span>Rating <span className="font-medium text-gray-700">{problem.rating}</span></span>
-                  <span>Samples <span className="font-medium text-gray-700">{problem.samples}</span></span>
+                <p className="font-semibold text-white truncate">{problem.name}</p>
+                <div className="grid grid-cols-3 gap-2 text-[11px]">
+                  {[
+                    { icon: <FiHash className="w-3 h-3" />, label: 'Contest', value: problem.contest },
+                    { icon: <FiBarChart2 className="w-3 h-3" />, label: 'Rating', value: problem.rating },
+                    { icon: <FiList className="w-3 h-3" />, label: 'Samples', value: problem.samples },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="popup-stat-card rounded-lg px-2 py-1 border">
+                      <p className="popup-muted inline-flex items-center gap-1">{icon} {label}</p>
+                      <p className="font-semibold text-white truncate">{value}</p>
+                    </div>
+                  ))}
                 </div>
               </>
             ) : (
-              <div className="text-xs text-gray-400 italic">Loading problem info…</div>
+              <div className="popup-muted text-xs italic inline-flex items-center gap-1.5">
+                <FiLoader className="w-3.5 h-3.5 animate-spin" />
+                Loading problem info...
+              </div>
             )}
           </div>
         )}
 
-        {/* Solve button */}
         <button
           type="button"
           onClick={handleSolve}
           disabled={!detected || loading}
-          className={`w-full py-2 px-4 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors
-            ${detected
-              ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            } disabled:opacity-60`}
+          className={`w-full py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-150 border disabled:opacity-60 ${detected ? 'popup-solve-btn' : 'popup-solve-btn-off'}`}
         >
           {loading ? (
-            <><span className="animate-spin">⏳</span> Opening…</>
+            <><FiLoader className="w-4 h-4 animate-spin" /> Opening...</>
           ) : opened ? (
-            <><span>✓</span> Opened!</>
+            <><FiCheck className="w-4 h-4" /> Opened!</>
           ) : (
-            <><span>⚡</span> Solve on Rijoan Compiler</>
+            <><FiZap className="w-4 h-4" /> Solve on Rijoan Compiler</>
           )}
         </button>
 
-        {/* Recent problems */}
         {recent.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Recent</p>
+          <div className="popup-recent-card rounded-xl p-2.5 border">
+            <p className="popup-recent-label text-[11px] font-semibold uppercase tracking-wide mb-2 inline-flex items-center gap-1.5">
+              <FiClock className="w-3.5 h-3.5" /> Recent
+            </p>
             <ul className="space-y-1">
               {recent.map((r) => (
                 <li key={r.problemId}>
                   <button
                     type="button"
                     onClick={() => chrome.tabs.create({ url: r.problemUrl })}
-                    className="w-full text-left text-xs px-2 py-1.5 rounded hover:bg-gray-100 flex items-center justify-between group"
+                    className="popup-recent-btn w-full text-left text-xs px-2 py-1.5 rounded-lg transition-colors flex items-center justify-between"
                   >
-                    <span className="font-medium text-gray-700 truncate">{r.problemId} — {r.problemName}</span>
-                    <span className="text-gray-400 ml-2 shrink-0">{timeAgo(r.openedAt)}</span>
+                    <span className="font-medium text-blue-100 truncate inline-flex items-center gap-1.5 min-w-0">
+                      <FiLink className="w-3 h-3 shrink-0 text-blue-400" />
+                      <span className="truncate">{r.problemId} - {r.problemName}</span>
+                    </span>
+                    <span className="popup-recent-time ml-2 shrink-0">{timeAgo(r.openedAt)}</span>
                   </button>
                 </li>
               ))}
@@ -167,15 +192,14 @@ export default function App() {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="border-t pt-2 flex items-center justify-between text-xs text-gray-400">
+        <div className="popup-footer border-t pt-2 flex items-center justify-between text-xs">
           <span>v1.0.0</span>
           <button
             type="button"
             onClick={() => chrome.tabs.create({ url: COMPILER_URL })}
-            className="hover:text-blue-600 transition-colors"
+            className="hover:text-white transition-colors"
           >
-            Open compiler ↗
+            Open compiler
           </button>
         </div>
       </div>

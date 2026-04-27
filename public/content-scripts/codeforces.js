@@ -1,7 +1,3 @@
-// ── Scraper ────────────────────────────────────────────────────────────────
-
-// Codeforces wraps pre content in <div class="test-example-line ..."> elements.
-// Extract each line's textContent and join with newlines for correct stdin format.
 function extractPreText(pre) {
   if (!pre) return '';
   const lines = pre.querySelectorAll('.test-example-line');
@@ -17,8 +13,6 @@ function scrapeProblem() {
   const timeLimit = header?.querySelector('.time-limit')?.childNodes[1]?.textContent?.trim();
   const memLimit  = header?.querySelector('.memory-limit')?.childNodes[1]?.textContent?.trim();
 
-  // Clone to avoid mutating the live DOM; strip the injected solve button so it
-  // doesn't appear when the problem statement is rendered in the compiler panel.
   const statementEl = document.querySelector('.problem-statement');
   let statement = '';
   if (statementEl) {
@@ -45,7 +39,6 @@ function scrapeProblem() {
                    .find(t => t.innerText.trim().startsWith('*'))
                    ?.innerText?.replace('*', '')?.trim();
 
-  // Parse contest + problem index from URL
   const match = location.pathname.match(
     /(?:contest|problemset\/problem)\/(\d+)\/(?:problem\/)?([A-Z]\d*)/i
   );
@@ -71,8 +64,6 @@ function scrapeProblem() {
     scrapeTimestamp: Date.now(),
   };
 }
-
-// ── Submit auto-fill ────────────────────────────────────────────────────────
 
 const CF_LANG_MAP = {
   cpp:        ['g++23', 'g++20', 'g++17', 'g++14', 'clang++'],
@@ -115,49 +106,39 @@ async function tryAutoFillSubmit() {
   const pending = result['cf-pending-submit'];
   if (!pending) return;
 
-  // Stale after 30 seconds
   if (Date.now() - pending.timestamp > 30000) {
     await chrome.storage.local.remove('cf-pending-submit');
     return;
   }
 
-  // Match URL (strip hash/query for comparison)
   const norm = u => u.split('#')[0].split('?')[0].replace(/\/$/, '');
   if (norm(location.href) !== norm(pending.problemUrl)) return;
 
   await chrome.storage.local.remove('cf-pending-submit');
 
-  // Wait for the language select (submit form must be present)
   const langSelect = await waitForEl('select[name="programTypeId"]');
   if (!langSelect) return;
 
-  // Set language
   const val = pickLangOption(langSelect, pending.languageId);
   if (val) {
     langSelect.value = val;
     langSelect.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  // Brief pause for CF to re-init the editor after language change
   await new Promise(r => setTimeout(r, 400));
 
-  // Fill CodeMirror editor
   const cmEl = document.querySelector('form[action*="submit"] .CodeMirror')
             ?? document.querySelector('.submit-form .CodeMirror')
             ?? document.querySelector('.CodeMirror');
   if (cmEl?.CodeMirror) {
     cmEl.CodeMirror.setValue(pending.code);
   } else {
-    // Fallback: bare textarea
     const ta = document.querySelector('textarea[name="source"]');
     if (ta) { ta.value = pending.code; ta.dispatchEvent(new Event('input', { bubbles: true })); }
   }
 
-  // Scroll the form into view
   (langSelect.closest('form') ?? langSelect).scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
-
-// ── Button injection ────────────────────────────────────────────────────────
 
 function injectButton() {
   if (document.getElementById('rijoan-solve-btn')) return;
@@ -187,10 +168,8 @@ function injectButton() {
 
     const payload = scrapeProblem();
 
-    // Save to local storage for relay (session storage is blocked on some CF pages)
     await chrome.storage.local.set({ [`ext-relay-${payload.sessionId}`]: payload });
 
-    // Save to recent history
     const RECENT_KEY = 'cf-recent-problems';
     const result = await chrome.storage.local.get(RECENT_KEY);
     const existing = result[RECENT_KEY] ?? [];
@@ -203,8 +182,6 @@ function injectButton() {
     const updated = [entry, ...existing.filter(r => r.problemId !== payload.problemId)].slice(0, 5);
     await chrome.storage.local.set({ [RECENT_KEY]: updated });
 
-    // Open compiler tab directly — window.open works from a user-gesture click
-    // and avoids the MV3 service-worker-sleeping race that drops sendMessage calls.
     window.open(`http://localhost:3000/?ext=${payload.sessionId}`, '_blank');
 
     setTimeout(() => {
@@ -215,8 +192,6 @@ function injectButton() {
 
   target.insertAdjacentElement('afterend', btn);
 }
-
-// ── Message listener (for popup queries) ───────────────────────────────────
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === 'getProblemInfo') {
@@ -236,12 +211,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
-// ── Init ───────────────────────────────────────────────────────────────────
-
 injectButton();
 tryAutoFillSubmit();
-
-// Re-inject if CF uses client-side navigation (rare but possible)
 const observer = new MutationObserver(() => {
   if (!document.getElementById('rijoan-solve-btn')) injectButton();
 });
