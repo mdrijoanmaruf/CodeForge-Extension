@@ -103,11 +103,9 @@ export default function App() {
       <div className="popup-header px-4 py-4 border-b backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="popup-logo-icon w-7 h-7 rounded-lg inline-flex items-center justify-center shrink-0 border">
-              <FiZap className="w-4 h-4 text-cyan-300" />
-            </span>
+            <img src="/icons/logo128.png" className="w-7 h-7 rounded-lg object-contain shrink-0" alt="Logo" />
             <div className="min-w-0">
-              <p className="text-sm font-bold tracking-wide truncate text-white">Rijoan Compiler</p>
+              <p className="text-sm font-bold tracking-wide truncate text-white">CompileLink</p>
               <p className="popup-subtitle text-[11px]">Codeforces Bridge</p>
             </div>
           </div>
@@ -163,7 +161,7 @@ export default function App() {
           ) : opened ? (
             <><FiCheck className="w-4 h-4" /> Opened!</>
           ) : (
-            <><FiZap className="w-4 h-4" /> Solve on Rijoan Compiler</>
+            <><FiZap className="w-4 h-4" /> Solve in CompileLink</>
           )}
         </button>
 

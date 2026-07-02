@@ -73,7 +73,6 @@ const CF_LANG_MAP = {
   csharp:     ['c# mono', 'mono', 'c#'],
   go:         ['go 1.', 'golang'],
   rust:       ['rust'],
-  ruby:       ['ruby'],
   php:        ['php'],
   javascript: ['javascript v8', 'node.js', 'node'],
 };
@@ -150,7 +149,7 @@ function injectButton() {
   const btn = document.createElement('button');
   btn.id = 'rijoan-solve-btn';
   btn.type = 'button';
-  btn.innerText = '⚡ Solve on Rijoan Compiler';
+  btn.innerText = '⚡ Solve in CompileLink';
   btn.style.cssText = `
     display: inline-flex; align-items: center; gap: 6px;
     margin: 8px 0; padding: 8px 16px;
@@ -182,10 +181,10 @@ function injectButton() {
     const updated = [entry, ...existing.filter(r => r.problemId !== payload.problemId)].slice(0, 5);
     await chrome.storage.local.set({ [RECENT_KEY]: updated });
 
-    window.open(`http://localhost:3000/?ext=${payload.sessionId}`, '_blank');
+    window.open(`https://compiler.rijoan.com/?ext=${payload.sessionId}`, '_blank');
 
     setTimeout(() => {
-      btn.innerText = '⚡ Solve on Rijoan Compiler';
+      btn.innerText = '⚡ Solve in CompileLink';
       btn.disabled = false;
     }, 2000);
   });
