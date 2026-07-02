@@ -149,7 +149,7 @@ function injectButton() {
   const btn = document.createElement('button');
   btn.id = 'rijoan-solve-btn';
   btn.type = 'button';
-  btn.innerText = '⚡ Solve in CompileLink';
+  btn.innerText = '⚡ Solve in CompileLink for Codeforces';
   btn.style.cssText = `
     display: inline-flex; align-items: center; gap: 6px;
     margin: 8px 0; padding: 8px 16px;
@@ -184,7 +184,7 @@ function injectButton() {
     window.open(`https://compiler.rijoan.com/?ext=${payload.sessionId}`, '_blank');
 
     setTimeout(() => {
-      btn.innerText = '⚡ Solve in CompileLink';
+      btn.innerText = '⚡ Solve in CompileLink for Codeforces';
       btn.disabled = false;
     }, 2000);
   });

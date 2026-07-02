@@ -9,6 +9,10 @@ import {
   FiList,
   FiClock,
   FiLink,
+  FiInfo,
+  FiChevronRight,
+  FiCode,
+  FiSettings
 } from 'react-icons/fi'
 import './index.css'
 import type { RecentProblem } from './types'
@@ -37,19 +41,6 @@ function timeAgo(ts: number): string {
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
   return `${Math.floor(h / 24)}d ago`
-}
-
-function StatusBadge({ detected }: { detected: boolean }) {
-  return (
-    <div className={`inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full border ${
-      detected
-        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
-        : 'bg-white/10 text-blue-100 border-white/15'
-    }`}>
-      <span className={`w-2 h-2 rounded-full ${detected ? 'bg-emerald-400 animate-pulse' : 'bg-blue-200/70'}`} />
-      {detected ? 'CF problem detected' : 'Not a CF problem page'}
-    </div>
-  )
 }
 
 export default function App() {
@@ -98,107 +89,142 @@ export default function App() {
   }
 
   return (
-    <div className="popup-root w-full overflow-hidden font-sans text-white select-none">
-      {/* header */}
-      <div className="popup-header px-4 py-4 border-b backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <img src="/icons/logo128.png" className="w-7 h-7 rounded-lg object-contain shrink-0" alt="Logo" />
+    <div className="w-full h-full font-sans text-gray-900 select-none p-2.5">
+      <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-[42px] h-[42px] rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center shrink-0">
+              <img src="/icons/logo128.png" className="w-[30px] h-[30px] object-contain" alt="Logo" />
+            </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold tracking-wide truncate text-white">CompileLink</p>
-              <p className="popup-subtitle text-[11px]">Codeforces Bridge</p>
+              <p className="text-[17px] font-bold tracking-tight text-gray-900 truncate leading-tight">CompileLink</p>
+              <p className="text-xs text-gray-500 font-medium">Codeforces Bridge</p>
             </div>
           </div>
           <a
             href={COMPILER_URL}
             onClick={(e) => { e.preventDefault(); chrome.tabs.create({ url: COMPILER_URL }) }}
-            className="popup-ext-link p-1.5 rounded-md border transition-colors"
+            className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-blue-500 hover:bg-gray-50 transition-colors shrink-0"
             title="Open compiler"
           >
-            <FiExternalLink className="w-3.5 h-3.5 text-blue-300" />
+            <FiExternalLink className="w-4 h-4" />
           </a>
         </div>
-      </div>
 
-      <div className="p-3 space-y-3">
-        <StatusBadge detected={detected} />
-
-        {detected && (
-          <div className="popup-problem-card rounded-xl p-3 text-sm space-y-2 border backdrop-blur-md">
-            {problem ? (
-              <>
-                <p className="font-semibold text-white truncate">{problem.name}</p>
-                <div className="grid grid-cols-3 gap-2 text-[11px]">
-                  {[
-                    { icon: <FiHash className="w-3 h-3" />, label: 'Contest', value: problem.contest },
-                    { icon: <FiBarChart2 className="w-3 h-3" />, label: 'Rating', value: problem.rating },
-                    { icon: <FiList className="w-3 h-3" />, label: 'Samples', value: problem.samples },
-                  ].map(({ icon, label, value }) => (
-                    <div key={label} className="popup-stat-card rounded-lg px-2 py-1 border">
-                      <p className="popup-muted inline-flex items-center gap-1">{icon} {label}</p>
-                      <p className="font-semibold text-white truncate">{value}</p>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="popup-muted text-xs italic inline-flex items-center gap-1.5">
-                <FiLoader className="w-3.5 h-3.5 animate-spin" />
-                Loading problem info...
-              </div>
-            )}
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={handleSolve}
-          disabled={!detected || loading}
-          className={`w-full py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-150 border disabled:opacity-60 ${detected ? 'popup-solve-btn' : 'popup-solve-btn-off'}`}
-        >
-          {loading ? (
-            <><FiLoader className="w-4 h-4 animate-spin" /> Opening...</>
-          ) : opened ? (
-            <><FiCheck className="w-4 h-4" /> Opened!</>
-          ) : (
-            <><FiZap className="w-4 h-4" /> Solve in CompileLink</>
-          )}
-        </button>
-
-        {recent.length > 0 && (
-          <div className="popup-recent-card rounded-xl p-2.5 border">
-            <p className="popup-recent-label text-[11px] font-semibold uppercase tracking-wide mb-2 inline-flex items-center gap-1.5">
-              <FiClock className="w-3.5 h-3.5" /> Recent
-            </p>
-            <ul className="space-y-1">
-              {recent.map((r) => (
-                <li key={r.problemId}>
-                  <button
-                    type="button"
-                    onClick={() => chrome.tabs.create({ url: r.problemUrl })}
-                    className="popup-recent-btn w-full text-left text-xs px-2 py-1.5 rounded-lg transition-colors flex items-center justify-between"
-                  >
-                    <span className="font-medium text-blue-100 truncate inline-flex items-center gap-1.5 min-w-0">
-                      <FiLink className="w-3 h-3 shrink-0 text-blue-400" />
-                      <span className="truncate">{r.problemId} - {r.problemName}</span>
+        <div className="px-4 pb-4 space-y-4">
+          {/* Status Box */}
+          <div className={`rounded-[16px] p-3.5 border flex gap-3.5 items-start ${detected ? 'border-emerald-100 bg-emerald-50/50' : 'border-blue-100 bg-blue-50/50'}`}>
+            <div className={`w-6 h-6 rounded-full text-white flex items-center justify-center shrink-0 mt-0.5 ${detected ? 'bg-emerald-500' : 'bg-blue-500'}`}>
+              {detected ? <FiCheck className="w-3.5 h-3.5" /> : <FiInfo className="w-3.5 h-3.5" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-gray-800 leading-snug">
+                {detected ? 'Codeforces problem detected' : "You're not on a Codeforces problem page"}
+              </p>
+              {detected ? (
+                <div className="mt-1">
+                  <p className="text-[12.5px] text-gray-600 font-medium truncate mb-1.5">{problem?.name || 'Loading problem...'}</p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-gray-500 font-medium inline-flex items-center gap-1">
+                      <FiHash className="w-3 h-3 text-gray-400" /> {problem?.contest}
                     </span>
-                    <span className="popup-recent-time ml-2 shrink-0">{timeAgo(r.openedAt)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <span className="text-[11px] text-gray-500 font-medium inline-flex items-center gap-1">
+                      <FiBarChart2 className="w-3 h-3 text-gray-400" /> {problem?.rating}
+                    </span>
+                    <span className="text-[11px] text-gray-500 font-medium inline-flex items-center gap-1">
+                      <FiList className="w-3 h-3 text-gray-400" /> {problem?.samples} Samples
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[12.5px] text-gray-500 mt-0.5 leading-snug">
+                  Open a problem page on Codeforces to use CompileLink.
+                </p>
+              )}
+            </div>
           </div>
-        )}
 
-        <div className="popup-footer border-t pt-2 flex items-center justify-between text-xs">
-          <span>v1.0.0</span>
+          {/* Action Button */}
           <button
             type="button"
-            onClick={() => chrome.tabs.create({ url: COMPILER_URL })}
-            className="hover:text-white transition-colors"
+            onClick={handleSolve}
+            disabled={!detected || loading}
+            className={`w-full py-3.5 px-4 rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 transition-all duration-150 ${
+              detected
+                ? 'bg-[#3b82f6] hover:bg-[#2563eb] text-white shadow-[0_4px_14px_rgba(59,130,246,0.3)]'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
           >
-            Open compiler
+            {loading ? (
+              <><FiLoader className="w-[18px] h-[18px] animate-spin" /> Opening...</>
+            ) : opened ? (
+              <><FiCheck className="w-[18px] h-[18px]" /> Opened!</>
+            ) : (
+              <>
+                <FiZap className="w-[18px] h-[18px]" />
+                Solve in CompileLink
+                <FiChevronRight className="w-[18px] h-[18px] ml-auto opacity-70" />
+              </>
+            )}
           </button>
+
+          {/* Recent Problems List */}
+          {recent.length > 0 && (
+            <div className="rounded-[16px] border border-gray-100 bg-white shadow-sm overflow-hidden">
+              <div className="px-4 py-3 flex items-center justify-between border-b border-gray-50">
+                <p className="text-[13px] font-semibold text-gray-800 flex items-center gap-2">
+                  <FiClock className="w-[15px] h-[15px] text-gray-500" /> Recent Problems
+                </p>
+                <a href="#" onClick={(e) => e.preventDefault()} className="text-[11px] font-semibold text-blue-600 hover:underline">View all</a>
+              </div>
+              <ul className="flex flex-col">
+                {recent.map((r, i) => (
+                  <li key={r.problemId} className={i !== recent.length - 1 ? "border-b border-gray-50" : ""}>
+                    <button
+                      type="button"
+                      onClick={() => chrome.tabs.create({ url: r.problemUrl })}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50/80 transition-colors flex items-center gap-3 group"
+                    >
+                      <FiLink className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                      <span className="font-semibold text-[13px] text-gray-800 truncate group-hover:text-blue-600 transition-colors">
+                        {r.problemId} - {r.problemName}
+                      </span>
+                      <span className="text-[11.5px] text-gray-400 ml-auto shrink-0 font-medium tabular-nums">{timeAgo(r.openedAt)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-3 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between mt-auto">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-[7px] bg-[#1d4ed8] text-white flex items-center justify-center">
+              <FiCode className="w-[13px] h-[13px]" />
+            </div>
+            <span className="text-[11px] font-semibold text-gray-500">v1.0.0</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://rijoan.com"
+              onClick={(e) => { e.preventDefault(); chrome.tabs.create({ url: 'https://rijoan.com' }) }}
+              className="text-[11.5px] text-gray-500 hover:text-blue-600 transition-colors inline-flex items-center gap-1 font-medium"
+            >
+              Developed by <span className="font-bold text-gray-700">Md Rijoan Maruf</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => chrome.tabs.create({ url: COMPILER_URL })}
+              className="text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1.5 text-[11.5px] font-semibold ml-2"
+              title="Open settings"
+            >
+              <FiSettings className="w-3.5 h-3.5" />
+              Open Compiler
+            </button>
+          </div>
         </div>
       </div>
     </div>
